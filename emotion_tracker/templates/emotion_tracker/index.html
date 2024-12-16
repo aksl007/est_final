@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video List</title>
+    <!-- Materialize CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        .video-thumbnail {
+            width: 100%;
+            height: auto;
+            object-fit: cover; /* 이미지 비율을 유지하면서 자르기 */
+            height: 180px; /* 고정된 높이로 맞추기 */
+        }
+
+        .video-item {
+            margin-bottom: 20px;
+        }
+
+        .video-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.2em;
+            height: 3em; /* 일정한 높이 유지 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-description {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4em;
+            height: 3em; /* 일정한 높이 유지 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            min-height: 300px; /* 최소 카드 높이 지정 */
+        }
+
+        .search-bar-container {
+            padding: 20px 20px 5px 20px;
+            background-color: #f2f2f2;
+            border-bottom: 1px solid #ddd;
+            {% comment %} display: none; /* 초기에는 숨김 */ {% endcomment %}
+        }
+
+        .search-bar {
+            width: 100%;
+        }
+
+        .search-row {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* 버튼과 검색바 사이의 간격 */
+        }
+
+        .search-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .new-video-btn {
+            display: flex;
+            align-items: center;
+        }
+
+        .new-video-btn i {
+            margin-right: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .new-video-btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-wrapper blue">
+            <a href="#" class="brand-logo center">EmoTube</a>
+            <ul id="nav-mobile" class="left">
+                <li>
+                    <a href="#!" class="new-video-btn" id="toggle-search">
+                        <i class="material-icons left"></i>
+                    </a>
+                </li>
+            </ul>
+            <ul id="nav-mobile" class="right">
+                <li>
+                    <a href="{% url 'emotion_tracker:upload' %}" class="new-video-btn">
+                        <i class="material-icons left">New</i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Search Bar -->
+    <div class="search-bar-container" id="search-bar-container">
+        <div class="row">
+            <div class="col s12 search-row valign-wrapper">
+                <input type="text" id="search-bar" class="search-bar" placeholder="영상 제목 또는 감정으로 검색...">
+                <button class="btn blue waves-effect waves-light search-button" id="search-button">
+                    <i class="material-icons">search</i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h4 class="center-align">Recommended Videos</h4>
+        <div class="row" id="video-list">
+            <!-- Loop through videos -->
+            {% for video in videos %}
+            <div class="col s12 m6 l4 video-item">
+                <div class="card">
+                    <div class="card-image">
+                        <a href="{{ video.url }}" target="_blank">
+                            <img src="{{ video.thumbnail_url }}" alt="Video Thumbnail" class="video-thumbnail">
+                        </a> 
+                    </div>
+                    <div class="card-content">
+                        <p class="video-title">
+                            <a href="{{ video.url }}" target="_blank">{{ video.title }}</a>
+                        </p>
+                        <p class="video-description">
+                            <a href="{% url 'emotion_tracker:detail' %}">{{ video.description|truncatewords:15 }}</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+        // 검색 필터링 기능
+        const searchBarContainer = document.getElementById('search-bar-container');
+        const searchBar = document.getElementById('search-bar');
+        const searchButton = document.getElementById('search-button');
+        const toggleSearch = document.getElementById('toggle-search');
+        const videoList = document.getElementById('video-list');
+        const videoItems = videoList.querySelectorAll('.video-item');
+
+        toggleSearch.addEventListener('click', () => {
+            if (searchBarContainer.style.display === 'block') {
+                searchBarContainer.style.display = 'none'; // 검색바 숨기기
+            } else {
+                searchBarContainer.style.display = 'block'; // 검색바 표시
+                searchBar.focus(); // 포커스 설정
+            }
+        });  
+
+        searchBar.addEventListener('input', () => {
+            const searchQuery = searchBar.value.toLowerCase();
+            videoItems.forEach(video => {
+                const title = video.querySelector('.video-title').textContent.toLowerCase();
+                const description = video.querySelector('.video-description').textContent.toLowerCase();
+                if (title.includes(searchQuery) || description.includes(searchQuery)) {
+                    video.style.display = '';
+                } else {
+                    video.style.display = 'none';
+                }
+            });
+        });
+
+            // 검색 도움글 배열 (placeholder에 표시될 텍스트)
+        const placeholders = [
+            "오늘은 행복한 영화가 보고싶어...",
+            "슬픈일이 있었어...",
+            "영상 제목 또는 감정으로 검색..."
+        ];
+
+        let placeholderIndex = 0;
+
+        // placeholder를 주기적으로 변경하는 함수
+        function changePlaceholder() {
+            const searchBar = document.getElementById('search-bar');
+            searchBar.placeholder = placeholders[placeholderIndex];
+            placeholderIndex = (placeholderIndex + 1) % placeholders.length; // 3개 도움글을 순차적으로 보여줌
+        }
+
+        // 페이지 로드 시 3초마다 placeholder 변경
+        setInterval(changePlaceholder, 3000); // 3초마다 placeholder 변경
+    </script>
+</body>
+</html>

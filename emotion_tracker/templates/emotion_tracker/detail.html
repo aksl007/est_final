@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Detail</title>
+    <!-- Materialize CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        .graph-container {
+            margin-bottom: 20px;
+        }
+
+        .emotion-timeline {
+            height: 300px; /* 기본 높이 */
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .spoiler-sticker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%; /* 그래프 컨테이너와 동일한 너비 */
+            height: 100%; /* 그래프 컨테이너와 동일한 높이 */
+            background-color: rgba(0, 0, 0, 0.8); /* 반투명 배경 */
+            backdrop-filter: blur(10px); /* 블러 효과 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            text-align: center;
+            z-index: 10;
+        }
+    
+        .spoiler-sticker span {
+            margin-bottom: 10px;
+            color: #000; /* 블러 위에 텍스트 색상 */
+            font-weight: bold;
+        }
+    
+        .spoiler-sticker.hidden {
+            display: none;
+        }
+
+        .video-details {
+            margin-top: 20px;
+        }
+
+        .detail-card {
+            margin-bottom: 20px;
+        }
+
+        .detail-card .card-content strong {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .emotion-timeline {
+                height: 200px; /* 모바일 환경에서 그래프 높이 조정 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-wrapper blue">
+            <a href="#" class="brand-logo center">Video Detail</a>
+            <ul id="nav-mobile" class="left">
+                <li><a href="{% url 'emotion_tracker:index' %}"><i class="material-icons">Back</i></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <h4 class="center-align">Emotion Analysis</h4>
+        
+        <!-- Graph Container -->
+        <div class="graph-container" style="position: relative;">
+            <div class="emotion-timeline">
+                <canvas id="emotionTimelineGraph"></canvas>
+            </div>
+            <!-- Spoiler Sticker -->
+            <div class="spoiler-sticker" id="spoilerSticker">
+                <button class="btn red waves-effect waves-light remove-spoiler-btn" id="removeSpoiler">
+                    스포 방지 제거
+                </button>
+            </div>
+        </div>
+
+        <!-- Video Details -->
+        <div class="video-details">
+            <!-- Title Card -->
+            <div class="card detail-card">
+                <div class="card-content">
+                    <strong>제목</strong>
+                    <span>{{ video.title }}</span>
+                </div>
+            </div>
+
+            <!-- Emotion Info Card -->
+            <div class="card detail-card">
+                <div class="card-content">
+                    <strong>감정 정보</strong>
+                    <span>{{ video.emotion_info }}</span>
+                </div>
+            </div>
+
+            <!-- Upload Date Card -->
+            <div class="card detail-card">
+                <div class="card-content">
+                    <strong>업로드 날짜</strong>
+                    <span>{{ video.upload_date }}</span>
+                </div>
+            </div>
+
+            <!-- Description Card -->
+            <div class="card detail-card">
+                <div class="card-content">
+                    <strong>설명</strong>
+                    <p>{{ video.description }}</p>
+                </div>
+            </div>
+
+            <!-- Additional Info Card -->
+            <div class="card detail-card">
+                <div class="card-content">
+                    <strong>추가 데이터</strong>
+                    <p>{{ video.additional_info }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- Chart.js for Timeline -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 스포 방지 스티커 제거 기능
+        const spoilerSticker = document.getElementById('spoilerSticker');
+        const removeSpoilerButton = document.getElementById('removeSpoiler');
+
+        removeSpoilerButton.addEventListener('click', () => {
+            spoilerSticker.classList.add('hidden');
+        });
+
+        // Emotion Timeline Graph (예시 데이터)
+        const ctx = document.getElementById('emotionTimelineGraph').getContext('2d');
+        const emotionData = {
+            labels: ['00:00', '00:30', '01:00', '01:30', '02:00'], // 시간 데이터
+            datasets: [{
+                label: '감정 점수',
+                data: [5, 7, 6, 8, 4], // 감정 점수 데이터
+                borderColor: 'blue',
+                backgroundColor: 'rgba(0, 0, 255, 0.1)',
+                fill: true,
+            }]
+        };
+
+        new Chart(ctx, {
+            type: 'line',
+            data: emotionData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '시간'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '감정 점수'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

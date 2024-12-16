@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Video</title>
+    <!-- Materialize CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <style>
+        .progress-container {
+            margin-top: 20px;
+        }
+
+        .input-field {
+            margin-top: 40px;
+        }
+
+        .disabled-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+            display: none;
+        }
+
+        #video-frame {
+            margin-top: 20px;
+            width: 100%;
+            height: 400px;
+        }
+
+        video {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-wrapper blue">
+            <a href="#" class="brand-logo center">Upload Video</a>
+            <ul id="nav-mobile" class="left">
+                <li><a href="{% url 'emotion_tracker:index' %}"><i class="material-icons">Back</i></a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h4 class="center-align">Upload a New Video</h4>
+        <div class="row">
+            <form id="video-upload-form" class="col s12">
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input type="url" id="youtube-link" placeholder="Enter YouTube link" required>
+                        <label for="youtube-link">YouTube Link</label>
+                    </div>
+                </div>
+                <div class="row center-align">
+                    <button type="submit" class="btn blue waves-effect waves-light">Submit</button>
+                </div>
+                
+                <div class="progress-container" id="progress-container" style="display: none;">
+                    <div class="progress">
+                        <div class="indeterminate"></div>
+                    </div>
+                </div>
+
+                <!-- Embedded video iframe -->
+                <div id="video-frame-container" style="display: none;">
+                    <iframe id="video-frame" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Disabled Overlay -->
+    <div class="disabled-overlay" id="disabled-overlay"></div>
+
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('video-upload-form');
+            const progressContainer = document.getElementById('progress-container');
+            const disabledOverlay = document.getElementById('disabled-overlay');
+            const videoFrameContainer = document.getElementById('video-frame-container');
+            const videoFrame = document.getElementById('video-frame');
+            const videoElement = document.createElement('video');
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            let model;
+
+            // Load your model here
+            {% comment %} tf.loadLayersModel('path/to/emotion_model.json').then(loadedModel => {
+                model = loadedModel;
+                console.log('Model loaded successfully!');
+            }).catch(err => {
+                console.error('Error loading model:', err);
+            }); {% endcomment %}
+
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const youtubeLink = document.getElementById('youtube-link').value;
+
+                if (youtubeLink.trim() === '') {
+                    M.toast({ html: 'Please enter a valid YouTube link!' });
+                    return;
+                }
+
+                disabledOverlay.style.display = 'block';
+                progressContainer.style.display = 'block';
+
+                try {
+                    const videoId = extractVideoId(youtubeLink);
+                    if (!videoId) {
+                        M.toast({ html: 'Invalid YouTube link!' });
+                        disabledOverlay.style.display = 'none';
+                        progressContainer.style.display = 'none';
+                        return;
+                    }
+
+                    const videoUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
+                    videoFrame.src = videoUrl;
+
+                    // Show the iframe once the link is processed
+                    videoFrameContainer.style.display = 'block';
+
+                    // Load the video into the hidden video element
+                    videoElement.src = videoUrl;
+                    videoElement.crossOrigin = 'anonymous';
+                    videoElement.play();
+
+                    // Capture frames from the video element
+                    videoElement.addEventListener('play', () => {
+                        captureFrames();
+                    });
+
+                    progressContainer.style.display = 'none';
+                    disabledOverlay.style.display = 'none';
+                    M.toast({ html: 'Video embedded and processing started!' });
+                } catch (error) {
+                    console.error('Error processing video:', error);
+                    progressContainer.style.display = 'none';
+                    disabledOverlay.style.display = 'none';
+                    M.toast({ html: 'An error occurred during processing!' });
+                }
+            });
+
+            function extractVideoId(url) {
+                const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/;
+                const match = url.match(regex);
+                return match ? match[1] : null;
+            }
+
+            // Capture frames from the video
+            function captureFrames() {
+                if (videoElement.paused || videoElement.ended) return;
+
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+                const imageData = tf.browser.fromPixels(canvas);
+                const resized = tf.image.resizeBilinear(imageData, [64, 64]); // Resize for model input
+                const normalized = resized.div(255).expandDims(0); // Normalize and add batch dimension
+                
+                console.log(normalized)
+                // Make prediction
+                {% comment %} if (model) {
+                    const prediction = model.predict(normalized);
+                    const emotionScores = prediction.dataSync();
+
+                    // Log emotion scores for each frame
+                    console.log('Emotion scores:', emotionScores);
+
+                    tf.dispose([imageData, resized, normalized, prediction]);
+                } {% endcomment %}
+
+                // Continue capturing frames every 100ms
+                setTimeout(captureFrames, 100);
+            }
+        });
+    </script>
+</body>
+</html>
+{% comment %} 영상 서버에서 다운로드 후 처리하는 방법으로 해야 됨 {% endcomment %}
