@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Video</title>
+    <title>Video Frame Analysis</title>
     <!-- Materialize CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <style>
         .progress-container {
             margin-top: 20px;
@@ -35,6 +36,34 @@
         video {
             display: none;
         }
+
+        #frame-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;  /* 가로 중앙 정렬 */
+        }
+
+        .frame-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .frame {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+        }
+        
+        .frame-text {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -46,145 +75,115 @@
             </ul>
         </div>
     </nav>
-
     <div class="container">
-        <h4 class="center-align">Upload a New Video</h4>
-        <div class="row">
-            <form id="video-upload-form" class="col s12">
-                <div class="row">
-                    <div class="input-field col s12">
-                        <input type="url" id="youtube-link" placeholder="Enter YouTube link" required>
-                        <label for="youtube-link">YouTube Link</label>
-                    </div>
-                </div>
-                <div class="row center-align">
-                    <button type="submit" class="btn blue waves-effect waves-light">Submit</button>
-                </div>
-                
-                <div class="progress-container" id="progress-container" style="display: none;">
-                    <div class="progress">
-                        <div class="indeterminate"></div>
-                    </div>
-                </div>
+        <h4 class="center-align">Video Frame Analysis</h4>
+        <form id="youtube-form" class="row">
+            <div class="input-field col s12">
+                <input id="youtube-url" type="url" placeholder="Enter YouTube URL" required>
+                <label for="youtube-url">YouTube URL</label>
+            </div>
+            <div class="col s12 center-align">
+                <button type="submit" class="btn blue" id="submit-button">Analyze Video</button>
+            </div>
+        </form>
 
-                <!-- Embedded video iframe -->
-                <div id="video-frame-container" style="display: none;">
-                    <iframe id="video-frame" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div id="progress" class="center-align" style="display: none;">
+            <div class="preloader-wrapper active">
+                <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left">
+                        <div class="circle"></div>
+                    </div><div class="gap-patch">
+                        <div class="circle"></div>
+                    </div><div class="circle-clipper right">
+                        <div class="circle"></div>
+                    </div>
                 </div>
-            </form>
+            </div>
+            <p>Processing video...</p>
         </div>
+
+        <div id="frame-container"></div>
     </div>
-
-    <!-- Disabled Overlay -->
-    <div class="disabled-overlay" id="disabled-overlay"></div>
-
-    <!-- Materialize JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <!-- TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('video-upload-form');
-            const progressContainer = document.getElementById('progress-container');
-            const disabledOverlay = document.getElementById('disabled-overlay');
-            const videoFrameContainer = document.getElementById('video-frame-container');
-            const videoFrame = document.getElementById('video-frame');
-            const videoElement = document.createElement('video');
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            let model;
+        document.getElementById('youtube-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const youtubeUrl = document.getElementById('youtube-url').value;
+            const progress = document.getElementById('progress');
+            const frameContainer = document.getElementById('frame-container');
+            const submitButton = document.getElementById('submit-button');
 
-            // Load your model here
-            {% comment %} tf.loadLayersModel('path/to/emotion_model.json').then(loadedModel => {
-                model = loadedModel;
-                console.log('Model loaded successfully!');
-            }).catch(err => {
-                console.error('Error loading model:', err);
-            }); {% endcomment %}
+            submitButton.disabled = true;
+            submitButton.innerText = "Processing..."; 
 
-            form.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const youtubeLink = document.getElementById('youtube-link').value;
 
-                if (youtubeLink.trim() === '') {
-                    M.toast({ html: 'Please enter a valid YouTube link!' });
-                    return;
-                }
+            frameContainer.innerHTML = '';
+            progress.style.display = 'block';
 
-                disabledOverlay.style.display = 'block';
-                progressContainer.style.display = 'block';
+            try {
+                // Send YouTube URL to Django server for processing
+                const response = await fetch('download_video/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ youtube_url: youtubeUrl })
+                });
 
-                try {
-                    const videoId = extractVideoId(youtubeLink);
-                    if (!videoId) {
-                        M.toast({ html: 'Invalid YouTube link!' });
-                        disabledOverlay.style.display = 'none';
-                        progressContainer.style.display = 'none';
-                        return;
+                const data = await response.json();
+                if (response.ok) {
+                    const frames = data.frames;
+                    let i = 0;
+                    for (const frame of frames) {
+                        i ++;
+                         // 프레임 컨테이너 생성
+                        const frameWrapper = document.createElement('div');
+                        frameWrapper.className = 'frame-wrapper';
+
+                        // 이미지 생성
+                        const img = document.createElement('img');
+                        img.src = `frames/${frame}`;
+                        img.className = 'frame';
+                        frameWrapper.appendChild(img);
+
+                        // 이미지 아래 텍스트 생성
+                        const text = document.createElement('p');
+                        text.className = 'frame-text';
+                        text.textContent = `Frame ${i}`;
+                        frameWrapper.appendChild(text);  // 텍스트 추가
+
+                        // 프레임 컨테이너를 전체 프레임 컨테이너에 추가
+                        frameContainer.appendChild(frameWrapper);
+
+                        // Analyze each frame using TensorFlow.js
+                        img.onload = async () => {
+                            const tensor = tf.browser.fromPixels(img)
+                                .resizeBilinear([64, 64]) // Resize for model input
+                                .div(255).expandDims(0); // Normalize and add batch dimension
+
+                            // Predict using your TensorFlow.js model
+                            {% comment %}
+                            const prediction = model.predict(tensor);
+                            console.log('Prediction:', prediction.dataSync());
+                            {% endcomment %}
+                            tensor.dispose();
+                        };
                     }
-
-                    const videoUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
-                    videoFrame.src = videoUrl;
-
-                    // Show the iframe once the link is processed
-                    videoFrameContainer.style.display = 'block';
-
-                    // Load the video into the hidden video element
-                    videoElement.src = videoUrl;
-                    videoElement.crossOrigin = 'anonymous';
-                    videoElement.play();
-
-                    // Capture frames from the video element
-                    videoElement.addEventListener('play', () => {
-                        captureFrames();
-                    });
-
-                    progressContainer.style.display = 'none';
-                    disabledOverlay.style.display = 'none';
-                    M.toast({ html: 'Video embedded and processing started!' });
-                } catch (error) {
-                    console.error('Error processing video:', error);
-                    progressContainer.style.display = 'none';
-                    disabledOverlay.style.display = 'none';
-                    M.toast({ html: 'An error occurred during processing!' });
+                } else {
+                    alert(data.error || 'Error processing video!');
                 }
-            });
+            } catch (err) {
+                console.error('Error:', err);
+                alert('An error occurred. Check the console for details.');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerText = "Analyze Video";  // Reset button text
 
-            function extractVideoId(url) {
-                const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/;
-                const match = url.match(regex);
-                return match ? match[1] : null;
-            }
-
-            // Capture frames from the video
-            function captureFrames() {
-                if (videoElement.paused || videoElement.ended) return;
-
-                canvas.width = videoElement.videoWidth;
-                canvas.height = videoElement.videoHeight;
-                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-                const imageData = tf.browser.fromPixels(canvas);
-                const resized = tf.image.resizeBilinear(imageData, [64, 64]); // Resize for model input
-                const normalized = resized.div(255).expandDims(0); // Normalize and add batch dimension
-                
-                console.log(normalized)
-                // Make prediction
-                {% comment %} if (model) {
-                    const prediction = model.predict(normalized);
-                    const emotionScores = prediction.dataSync();
-
-                    // Log emotion scores for each frame
-                    console.log('Emotion scores:', emotionScores);
-
-                    tf.dispose([imageData, resized, normalized, prediction]);
-                } {% endcomment %}
-
-                // Continue capturing frames every 100ms
-                setTimeout(captureFrames, 100);
+                progress.style.display = 'none';
             }
         });
+
+        // Load your TensorFlow.js model
+        {% comment %}
+        const model = await tf.loadLayersModel('/path/to/emotion_model.json');
+        {% endcomment %}
     </script>
 </body>
 </html>
-{% comment %} 영상 서버에서 다운로드 후 처리하는 방법으로 해야 됨 {% endcomment %}
