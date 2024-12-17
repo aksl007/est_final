@@ -165,20 +165,8 @@
             }
         });  
 
-        searchBar.addEventListener('input', () => {
-            const searchQuery = searchBar.value.toLowerCase();
-            videoItems.forEach(video => {
-                const title = video.querySelector('.video-title').textContent.toLowerCase();
-                const description = video.querySelector('.video-description').textContent.toLowerCase();
-                if (title.includes(searchQuery) || description.includes(searchQuery)) {
-                    video.style.display = '';
-                } else {
-                    video.style.display = 'none';
-                }
-            });
-        });
 
-            // 검색 도움글 배열 (placeholder에 표시될 텍스트)
+        // 검색 도움글 배열 (placeholder에 표시될 텍스트)
         const placeholders = [
             "오늘은 행복한 영화가 보고싶어...",
             "슬픈일이 있었어...",
@@ -196,6 +184,55 @@
 
         // 페이지 로드 시 3초마다 placeholder 변경
         setInterval(changePlaceholder, 3000); // 3초마다 placeholder 변경
+
+
+        //search button click
+        searchButton.addEventListener('click', async () => {
+            const apiKey = "AIzaSyDlm1kEcGs6ky5d2-Ao3QfKkbIPfh22Xz4"; // Replace with your API key
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+            // Get the user input from the textarea
+            let prompt = searchBar.value;
+            if (!prompt) {
+                alert("검색어를 입력해주세요!");
+                return;
+            }
+            
+            prompt = "검색어를 분석해서 우리 영상으로 사용자의 감정을 개선하려고 해, 영상의 감성 수치를 다음과 같은 숫자(0~10), 숫자(0~10), 숫자(0~10), 숫자(0~10) 형식으로 각각 행복,슬픔,놀람,화남으로 나타내줘 그리고 절대적으로 숫자 결과만 나타내줘, 검색어는 다음과 같아, " + prompt;
+
+            // Construct the request body
+            const requestBody = {
+                contents: [
+                    {
+                        parts: [{ text: prompt }]
+                    }
+                ]
+            };
+
+            try {
+                // Make the API request
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                // Handle the response
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP Error: ${response.status}\n${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log(JSON.stringify(result, null, 2));
+                //document.getElementById('response').innerText = JSON.stringify(result, null, 2);
+            } catch (error) {
+                console.log(error);
+                //document.getElementById('response').innerText = `Error: ${error.message}`;
+            }
+        });
     </script>
 </body>
 </html>
