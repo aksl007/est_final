@@ -6,7 +6,6 @@
     <title>Video Frame Analysis</title>
     <!-- Materialize CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <style>
         .progress-container {
             margin-top: 20px;
@@ -54,9 +53,9 @@
         }
         
         .frame {
-            width: 150px;
-            height: 150px;
-            object-fit: cover;
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
         }
         
         .frame-text {
@@ -129,17 +128,19 @@
 
                 const data = await response.json();
                 if (response.ok) {
-                    const frames = data.frames;
+                    const results = data.results;
                     let i = 0;
-                    for (const frame of frames) {
+                    for (const result of results) {
                         i ++;
+
+
                          // 프레임 컨테이너 생성
                         const frameWrapper = document.createElement('div');
                         frameWrapper.className = 'frame-wrapper';
 
                         // 이미지 생성
                         const img = document.createElement('img');
-                        img.src = `frames/${frame}`;
+                        img.src = `frames/${result.frame}`;
                         img.className = 'frame';
                         frameWrapper.appendChild(img);
 
@@ -151,20 +152,6 @@
 
                         // 프레임 컨테이너를 전체 프레임 컨테이너에 추가
                         frameContainer.appendChild(frameWrapper);
-
-                        // Analyze each frame using TensorFlow.js
-                        img.onload = async () => {
-                            const tensor = tf.browser.fromPixels(img)
-                                .resizeBilinear([64, 64]) // Resize for model input
-                                .div(255).expandDims(0); // Normalize and add batch dimension
-
-                            // Predict using your TensorFlow.js model
-                            {% comment %}
-                            const prediction = model.predict(tensor);
-                            console.log('Prediction:', prediction.dataSync());
-                            {% endcomment %}
-                            tensor.dispose();
-                        };
                     }
                 } else {
                     alert(data.error || 'Error processing video!');
@@ -180,10 +167,6 @@
             }
         });
 
-        // Load your TensorFlow.js model
-        {% comment %}
-        const model = await tf.loadLayersModel('/path/to/emotion_model.json');
-        {% endcomment %}
     </script>
 </body>
 </html>
