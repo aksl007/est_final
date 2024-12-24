@@ -30,7 +30,7 @@ load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', '104.143.3.163']
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
