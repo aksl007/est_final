@@ -60,7 +60,7 @@ def download_video(request):
                 return JsonResponse({'error': 'YouTube URL is required!'}, status=400)
             
             # YouTube 영상 다운로드
-            yt = YouTube(youtube_url)
+            yt = YouTube(youtube_url, use_po_token=True)
             stream = yt.streams.filter(progressive=True, file_extension='mp4').first()
             temp_video_path = os.path.join(settings.MEDIA_ROOT, f"{uuid.uuid4()}.mp4")
             stream.download(output_path=settings.MEDIA_ROOT, filename=temp_video_path)
