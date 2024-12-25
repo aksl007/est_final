@@ -94,7 +94,7 @@ def download_video(request):
 
 
             # 모델 호출
-            model = YOLO(os.path.join(settings.MEDIA_ROOT, 'weight', 'best.pt'))
+            model = YOLO(os.path.join(settings.BASE_DIR, 'best.pt'))
             
             # 프레임 추출
             cap = cv2.VideoCapture(temp_video_path)
