@@ -99,7 +99,7 @@
 <body>
     <nav>
         <div class="nav-wrapper blue">
-            <a href="#" class="brand-logo center">EmoTube</a>
+            <a href="{% url 'emotion_tracker:index' %}" class="brand-logo center">EmoTube</a>
             <ul id="nav-mobile" class="left">
                 <li>
                     <a href="#!" class="new-video-btn" id="toggle-search">
@@ -130,7 +130,7 @@
     </div>
 
     <div class="container">
-        <h4 class="center-align">Recommended Videos</h4>
+        <!-- <h4 class="center-align">Recommended Videos</h4> -->
         <div class="row" id="video-list">
             <!-- Loop through videos -->
             {% for video in videos %}
@@ -143,14 +143,19 @@
                     </div>
                     <div class="card-content">
                         <p class="video-title">
-                            <a href="{{ video.url }}" target="_blank">{{ video.title }}</a>
+                            <a href="{{ video.url }}" target="_blank">{{ video.title|truncatewords:6 }}</a>
                         </p>
                         <p class="video-description">
-                            <a href="{% url 'emotion_tracker:detail' %}">{{ video.description|truncatewords:15 }}</a>
+                            <a href="{{ video.channel_url }}" target="_blank">{{ video.author }}</a>
+                        </p>
+                        <p class="video-description">
+                            <a href="{% url 'emotion_tracker:detail' %}">기쁨 {{ video.happy }} 화남 {{ video.anger }} 슬픔 {{ video.sadness }} 당황 {{ video.panic }}</a>
                         </p>
                     </div>
                 </div>
             </div>
+            {% empty %}
+            <p>검색 결과가 없습니다.</p>
             {% endfor %}
         </div>
     </div>
@@ -198,7 +203,7 @@
 
         //search button click
         searchButton.addEventListener('click', async () => {
-            const apiKey = "AIzaSyDlm1kEcGs6ky5d2-Ao3QfKkbIPfh22Xz4"; // Replace with your API key
+            const apiKey = "AIzaSyBOSSGyQnVIG8uR746dfGKxbPTv3vmLdSA"; // Replace with your API key
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
             // Get the user input from the textarea
@@ -208,7 +213,7 @@
                 return;
             }
             
-            prompt = "검색어를 분석해서 우리 영상으로 사용자의 감정을 개선하려고 해, 영상의 감성 수치를 다음과 같은 숫자(0~10), 숫자(0~10), 숫자(0~10), 숫자(0~10) 형식으로 각각 행복,슬픔,놀람,화남으로 나타내줘 그리고 절대적으로 숫자 결과만 나타내줘, 검색어는 다음과 같아, " + prompt;
+            prompt = "검색어를 분석해서 우리 영상으로 사용자의 감정을 개선하려고 해, 영상의 감성 수치를 다음과 같은 숫자(0~3), 숫자(0~3), 숫자(0~3), 숫자(0~3) 형식으로 각각 행복,슬픔,놀람,화남으로 나타내줘 그리고 절대적으로 숫자 결과만 나타내줘, 검색어는 다음과 같아, " + prompt;
 
             // Construct the request body
             const requestBody = {
@@ -236,7 +241,20 @@
                 }
 
                 const result = await response.json();
+
+                
                 console.log(JSON.stringify(result, null, 2));
+                // Extracting the text
+                const text = result.candidates[0].content.parts[0].text;
+
+                // Encoding the text to make it URL-safe
+                const encodedText = encodeURIComponent(text);
+
+                // Adding the text as a query parameter to the current URL
+                const newUrl = `${window.location.pathname}?search=${encodedText}`;
+
+                // Redirecting to the new URL
+                window.location.href = newUrl;
                 //document.getElementById('response').innerText = JSON.stringify(result, null, 2);
             } catch (error) {
                 console.log(error);

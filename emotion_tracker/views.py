@@ -16,9 +16,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 def index(request):
-
-    # YouTubeVideo 모델에서 데이터를 조회
-    videos = YouTubeVideo.objects.all()  # 모든 비디오 데이터를 가져옵니다.
+    
+    search = request.GET.get('search', None)  # 검색어 가져오기
+    if search:
+        # YouTubeVideo 모델에서 데이터를 조회
+        emotions = search.split(',')
+        videos = YouTubeVideo.objects.filter(happy__gte=emotions[0], anger__gte=emotions[1], sadness__gte=emotions[2], panic__gte=emotions[3])
+    else:
+        # YouTubeVideo 모델에서 데이터를 조회
+        videos = YouTubeVideo.objects.all()  # 모든 비디오 데이터를 가져옵니다.
+    
     
     # 데이터를 딕셔너리 형식으로 변환하여 템플릿에 전달
     video_data = [
@@ -29,6 +36,10 @@ def index(request):
             "thumbnail_url": video.thumbnail_url,
             "channel_url": video.channel_url,  # 또는 다른 비디오 관련 URL
             "url": video.video_url,  # 또는 다른 비디오 관련 URL
+            "happy": video.happy,
+            "anger": video.anger,
+            "sadness": video.sadness,
+            "panic": video.panic,
         }
         for video in videos
     ]
@@ -103,6 +114,9 @@ def download_video(request):
             frame_num = 0
             detection_results = []
 
+            total = 0
+            emotions = [0] * 4
+
             with transaction.atomic():  # Using atomic transaction for bulk create
                 detections_to_create = []
                 while cap.isOpened():
@@ -140,6 +154,12 @@ def download_video(request):
                                 frame_filename=frame_filename
                             )
                             detections_to_create.append(detection_obj)
+
+                            # calculate emotion
+                            total += 1
+                            emotions[int(box.cls)] += float(box.conf)
+
+
                         
                         if len(results[0].boxes) == 0:
                             # Add detections for the frame
@@ -161,6 +181,15 @@ def download_video(request):
 
                     frame_count += 1
 
+                total_emotion = 0
+                for emotion in emotions:
+                    total_emotion += emotion
+                YouTubeVideo.objects.filter(video_id=yt.video_id).update(
+                    happy=int(emotions[0]/total_emotion*10),
+                    anger=int(emotions[1]/total_emotion*10),
+                    sadness=int(emotions[2]/total_emotion*10),
+                    panic=int(emotions[3]/total_emotion*10)
+                )                
                 # Bulk create detections
                 FrameDetection.objects.bulk_create(detections_to_create)    
 
