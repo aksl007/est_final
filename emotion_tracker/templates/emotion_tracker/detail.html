@@ -9,15 +9,21 @@
     <!-- Custom CSS -->
     <style>
         .graph-container {
-            margin-bottom: 20px;
+            display: flex;
+            justify-content: center; /* Horizontally center the content */
+            align-items: center; /* Vertically center the content */
+            height: 320px; /* Make the container take up the full viewport height */
+            width: 100%; /* Make the container take up the full width */
+            position: relative; /* Ensure proper positioning */
         }
 
         .emotion-timeline {
-            height: 300px; /* 기본 높이 */
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
+            display: flex;
+            justify-content: center; /* Horizontally center the chart */
+            align-items: center; /* Vertically center the chart */
+            width: 100%; /* Make the timeline occupy the full width */
+            height: 100%; /* Make the timeline occupy 80% of the container's height */
+            position: relative;
         }
 
         .spoiler-sticker {
@@ -47,6 +53,59 @@
             display: none;
         }
 
+        /* Container for checkboxes */
+        #checkbox-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px; /* Increased gap for better spacing */
+            flex-wrap: wrap; /* Allow the checkboxes to wrap if needed */
+        }
+
+        /* Style for each checkbox label */
+        #checkbox-container label {
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Space between checkbox and label text */
+            background-color: #f0f0f0; /* Light background to make checkboxes stand out */
+            border-radius: 5px;
+            padding: 8px 12px; /* Padding for more clickable area */
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        /* Style for checkbox itself */
+        #checkbox-container input[type="checkbox"] {
+            width: 20px; /* Increase size of checkbox */
+            height: 20px;
+            accent-color: #007bff; /* Custom color for checkbox */
+            transition: transform 0.2s ease-in-out; /* Smooth animation for checked state */
+        }
+
+        /* Hover effect for checkboxes */
+        #checkbox-container label:hover {
+            background-color: #e0e0e0; /* Darker background on hover */
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.2); /* Subtle shadow on hover */
+        }
+
+        /* Checked state style */
+        #checkbox-container input[type="checkbox"]:checked {
+            transform: scale(1.1); /* Slightly enlarge the checkbox when checked */
+        }
+
+        /* Label text customization */
+        #checkbox-container label span {
+            font-weight: bold; /* Bold label text */
+            color: #333; /* Dark color for visibility */
+        }
+
+        /* Optional: Provide a nice visual feedback when the checkbox is checked */
+        #checkbox-container input[type="checkbox"]:checked + span {
+            color: #007bff; /* Change text color to blue when checked */
+        }
+
+
         .video-details {
             margin-top: 20px;
         }
@@ -66,6 +125,37 @@
                 height: 200px; /* 모바일 환경에서 그래프 높이 조정 */
             }
         }
+        .video-thumbnail {
+            width: 100%; /* 부모 요소의 너비에 맞게 이미지 크기 설정 */
+            height: 320px; /* 이미지의 비율을 유지하도록 설정 */
+            object-fit: contain; /* 이미지가 비율을 유지하며 부모 요소에 맞게 크기가 조정되도록 설정 */
+        }
+
+        .frame-wrapper {
+        display: inline-block;
+        margin: 10px;
+        text-align: center;
+        }
+
+        .frame {
+            width: 100px;  /* 원하는 크기로 설정 */
+            height: auto;
+        }
+
+        .frame-text {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        #frame-container {
+            display: flex;
+            flex-wrap: wrap;  /* Allow frames to wrap to the next line if needed */
+            justify-content: center;  /* Horizontally center the frames */
+            align-items: center;  /* Vertically center the frames */
+            height: 100vh;  /* Take full viewport height */
+            margin: 0 auto;  /* Center container horizontally */
+        }
     </style>
 </head>
 <body>
@@ -82,6 +172,8 @@
     <!-- Main Container -->
     <div class="container">
         <h4 class="center-align">Emotion Analysis</h4>
+
+        
         
         <!-- Graph Container -->
         <div class="graph-container" style="position: relative;">
@@ -96,47 +188,75 @@
             </div>
         </div>
 
+        <div id="checkbox-container">
+            <label>
+                <input type="checkbox" class="emotion-checkbox" data-emotion="0" checked>
+                <span>Happy</span>
+            </label>
+            <label>
+                <input type="checkbox" class="emotion-checkbox" data-emotion="1" checked>
+                <span>Anger</span>
+            </label>
+            <label>
+                <input type="checkbox" class="emotion-checkbox" data-emotion="2" checked>
+                <span>Sadness</span>
+            </label>
+            <label>
+                <input type="checkbox" class="emotion-checkbox" data-emotion="3" checked>
+                <span>Panic</span>
+            </label>
+        </div>
+
         <!-- Video Details -->
         <div class="video-details">
+
+            <a href="{{ video.video_url }}" target="_blank">
+                <img src="{{ video.thumbnail_url }}" alt="Video Thumbnail" class="video-thumbnail" >
+            </a> 
+
             <!-- Title Card -->
             <div class="card detail-card">
                 <div class="card-content">
                     <strong>제목</strong>
-                    <span>{{ video.title }}</span>
+                    <a href="{{ video.video_url }}" target="_blank">{{ video.title }}</a>
                 </div>
             </div>
+
+            <!-- Description Card -->
+            {% if video.description %}
+                <div class="card detail-card">
+                    <div class="card-content">
+                        <strong>설명</strong>
+                        <p>{{ video.description }}</p>
+                    </div>
+                </div>
+            {% endif %}
 
             <!-- Emotion Info Card -->
             <div class="card detail-card">
                 <div class="card-content">
-                    <strong>감정 정보</strong>
-                    <span>{{ video.emotion_info }}</span>
+                    <strong>채널명</strong>
+                    <a href="{{ video.channel_url }}" target="_blank">{{ video.author }}</a>
                 </div>
             </div>
 
             <!-- Upload Date Card -->
             <div class="card detail-card">
                 <div class="card-content">
-                    <strong>업로드 날짜</strong>
-                    <span>{{ video.upload_date }}</span>
-                </div>
-            </div>
-
-            <!-- Description Card -->
-            <div class="card detail-card">
-                <div class="card-content">
-                    <strong>설명</strong>
-                    <p>{{ video.description }}</p>
+                    <strong>분석 날짜</strong>
+                    <span>{{ video.created_at|date:"Y년 m월 d일, A g시 i분" }}</span>
                 </div>
             </div>
 
             <!-- Additional Info Card -->
             <div class="card detail-card">
                 <div class="card-content">
-                    <strong>추가 데이터</strong>
-                    <p>{{ video.additional_info }}</p>
+                    <strong>감정정보</strong>
+                    <p>기쁨 {{ video.happy }}점 | 화남 {{ video.anger }}점 | 슬픔 {{ video.sadness }}점 | 당황 {{ video.panic }}점</p>
                 </div>
             </div>
+
+            <div id="frame-container"></div>
         </div>
     </div>
 
@@ -145,6 +265,43 @@
     <!-- Chart.js for Timeline -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        const frameContainer = document.getElementById('frame-container');
+        const frames = JSON.parse('{{ frames|escapejs }}');
+        const BASE_DIR = "{{ BASE_DIR }}"; 
+
+        // Set to keep track of displayed frame numbers
+        const displayedFrameNumbers = new Set();
+        frames.forEach((frame, i) => {
+                
+            // Check if the frame number has already been displayed
+            if (displayedFrameNumbers.has(frame.frame_number)) {
+                return;  // Skip if the frame number has already been displayed
+            }
+
+            // Mark the frame number as displayed
+            displayedFrameNumbers.add(frame.frame_number);
+            
+            // 프레임 컨테이너 생성
+            const frameWrapper = document.createElement('div');
+            frameWrapper.className = 'frame-wrapper';
+
+            // 이미지 생성
+            const img = document.createElement('img');
+            img.src = `${BASE_DIR}${frame.frame_filename}`;  // 경로를 수정할 필요가 있을 수 있습니다.
+            img.className = 'frame';
+            frameWrapper.appendChild(img);
+
+            // 이미지 아래 텍스트 생성
+            const text = document.createElement('p');
+            text.className = 'frame-text';
+            text.textContent = `Frame ${frame.frame_number}`;  // 프레임 번호 표시
+            frameWrapper.appendChild(text);  // 텍스트 추가
+
+            // 프레임 컨테이너를 전체 프레임 컨테이너에 추가
+            frameContainer.appendChild(frameWrapper);
+        });
+
+
         // 스포 방지 스티커 제거 기능
         const spoilerSticker = document.getElementById('spoilerSticker');
         const removeSpoilerButton = document.getElementById('removeSpoiler');
@@ -153,20 +310,63 @@
             spoilerSticker.classList.add('hidden');
         });
 
-        // Emotion Timeline Graph (예시 데이터)
+        /// Emotion Timeline Graph (예시 데이터)
         const ctx = document.getElementById('emotionTimelineGraph').getContext('2d');
+
+        // Emotion class labels
+        const emotionClasses = ['Happy', 'Anger', 'Sadness', 'Panic'];
+
+        console.log(frames);
+
+        // Initialize the data for each emotion class
         const emotionData = {
-            labels: ['00:00', '00:30', '01:00', '01:30', '02:00'], // 시간 데이터
-            datasets: [{
-                label: '감정 점수',
-                data: [5, 7, 6, 8, 4], // 감정 점수 데이터
-                borderColor: 'blue',
-                backgroundColor: 'rgba(0, 0, 255, 0.1)',
-                fill: true,
-            }]
+            labels: [],  // Frame numbers will be added here
+            datasets: [
+                { label: 'Happy', data: [], borderColor: 'blue', backgroundColor: 'rgba(0, 0, 255, 0.1)', fill: true },
+                { label: 'Anger', data: [], borderColor: 'red', backgroundColor: 'rgba(255, 0, 0, 0.1)', fill: true },
+                { label: 'Sadness', data: [], borderColor: 'gray', backgroundColor: 'rgba(125, 125, 125, 0.1)', fill: true },
+                { label: 'Panic', data: [], borderColor: 'green', backgroundColor: 'rgba(0, 255, 0, 0.1)', fill: true }
+            ]
         };
 
-        new Chart(ctx, {
+        frames.forEach(frame => {
+            // If confidence is -1, treat it as 0
+            const confidence = frame.confidence === -1 ? 0 : frame.confidence;
+            
+            // If detection_class is missing or invalid, default it to 0 (Joy)
+            const detectionClass = frame.detection_class >= 0 && frame.detection_class < 4
+                ? frame.detection_class
+                : 0; // Default to Joy if invalid or missing
+
+            // Add the frame number to labels only once
+            if (!emotionData.labels.includes(`Frame ${frame.frame_number}`)) {
+                emotionData.labels.push(`Frame ${frame.frame_number}`);  // Add frame number to the labels only once
+            }
+
+            // Ensure all emotion classes (0 to 3) are represented for each frame
+            for (let i = 0; i < emotionData.datasets.length; i++) {
+                const frameIndex = emotionData.labels.indexOf(`Frame ${frame.frame_number}`);
+
+                if (i === detectionClass) {
+                    // If this class for this frame already has a confidence, update with the higher value
+                    if (emotionData.datasets[i].data[frameIndex] === undefined) {
+                        emotionData.datasets[i].data.push(confidence * 10);  // First time setting the confidence
+                    } else {
+                        // If a value already exists, take the maximum between the existing and the new confidence
+                        emotionData.datasets[i].data[frameIndex] = Math.max(emotionData.datasets[i].data[frameIndex], confidence * 10);
+                    }
+                } else {
+                    // If this class does not match, push 0 as the confidence for this class
+                    if (emotionData.datasets[i].data[frameIndex] === undefined) {
+                        emotionData.datasets[i].data.push(0);  // If no confidence value exists, set to 0
+                    }
+                }
+            }
+        });
+
+
+        // Create the chart
+        const chart = new Chart(ctx, {
             type: 'line',
             data: emotionData,
             options: {
@@ -180,18 +380,31 @@
                     x: {
                         title: {
                             display: true,
-                            text: '시간'
+                            text: 'Time'
                         }
                     },
                     y: {
                         title: {
                             display: true,
-                            text: '감정 점수'
-                        }
+                            text: 'Confidence Score'
+                        },
+                        min: 0,  // Minimum value for y-axis
+                        max: 10   // Maximum value for y-axis (as confidence is between 0 and 1)
                     }
                 }
             }
         });
+
+        // Add event listener to checkboxes
+        const checkboxes = document.querySelectorAll('.emotion-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', (event) => {
+                const emotionIndex = event.target.dataset.emotion;
+                chart.data.datasets[emotionIndex].hidden = !event.target.checked; // Toggle visibility
+                chart.update(); // Re-render the chart
+            });
+        });
+        
     </script>
 </body>
 </html>

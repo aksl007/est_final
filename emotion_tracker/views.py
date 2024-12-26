@@ -40,6 +40,7 @@ def index(request):
             "anger": video.anger,
             "sadness": video.sadness,
             "panic": video.panic,
+            "video_id": video.video_id,
         }
         for video in videos
     ]
@@ -50,9 +51,21 @@ def upload(request):
     
     return render(request, "emotion_tracker/upload.html")
 
-def detail(request):
-    
-    return render(request, "emotion_tracker/detail.html")
+def detail(request, video_id):
+    video = YouTubeVideo.objects.get(video_id=video_id)
+    frames = FrameDetection.objects.filter(video=video)
+
+    data = [{
+            'frame_number': frame.frame_number,
+            'confidence': frame.confidence,
+            'detection_class': frame.detection_class,
+            'frame_filename': frame.frame_filename.url,
+        } for frame in frames]
+
+    return render(request, "emotion_tracker/detail.html", {
+        "video": video,
+        "frames": json.dumps(data)  # Send JSON as a string
+    })
 
 # Frames 저장 경로 설정
 # FRAME_DIR = os.path.join(settings.MEDIA_ROOT, 'frames')
