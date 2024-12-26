@@ -10,6 +10,7 @@ import json
 from ultralytics import YOLO
 from django.db import transaction
 from .models import YouTubeVideo, FrameDetection
+from .utils import get_top_comments
 
 import logging
 
@@ -51,6 +52,7 @@ def upload(request):
     
     return render(request, "emotion_tracker/upload.html")
 
+
 def detail(request, video_id):
     video = YouTubeVideo.objects.get(video_id=video_id)
     frames = FrameDetection.objects.filter(video=video)
@@ -61,10 +63,15 @@ def detail(request, video_id):
             'detection_class': frame.detection_class,
             'frame_filename': frame.frame_filename.url,
         } for frame in frames]
+    
+
+    # 댓글 가져오기
+    comments = get_top_comments(video_id, max_comments=5)
 
     return render(request, "emotion_tracker/detail.html", {
         "video": video,
-        "frames": json.dumps(data)  # Send JSON as a string
+        "frames": json.dumps(data),  # Send JSON as a string
+        "comments": json.dumps(comments),
     })
 
 # Frames 저장 경로 설정

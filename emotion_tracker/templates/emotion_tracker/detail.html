@@ -156,6 +156,66 @@
             height: 100vh;  /* Take full viewport height */
             margin: 0 auto;  /* Center container horizontally */
         }
+
+        /* 카드 기본 스타일 */
+        .card {
+            margin: 20px auto;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background: #fff;
+        }
+
+        /* 요약 섹션 스타일 */
+        .summary-section {
+            background-color: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        /* 댓글 섹션 스타일 */
+        .comment-section {
+            padding: 10px;
+        }
+
+        .comment-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .comment-section li {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .comment-section li:last-child {
+            border-bottom: none;
+        }
+
+        /* 댓글 강조 스타일 */
+        .comment-section li strong {
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* 좋아요 스타일 */
+        .like-count {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .card {
+                width: 90%;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -232,6 +292,26 @@
                 </div>
             {% endif %}
 
+            {% if comments %}
+            <div class="card detail-card">
+                <!-- 댓글 요약 섹션 -->
+                <div class="card-content summary-section">
+                    <strong>댓글 요약</strong>
+                    <p id="comment-summary">이 비디오는 감동적이며 유익하다는 의견이 많습니다.</p>
+                </div>
+            </div>
+            
+            <!-- 댓글 리스트 섹션 -->
+            <div class="card comment-card">
+                <div class="card-content comment-section">
+                    <strong>댓글</strong>
+                    <ul id="comment-list">
+                        <!-- 댓글이 동적으로 추가됩니다 -->
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Emotion Info Card -->
             <div class="card detail-card">
                 <div class="card-content">
@@ -252,7 +332,7 @@
             <div class="card detail-card">
                 <div class="card-content">
                     <strong>감정정보</strong>
-                    <p>기쁨 {{ video.happy }}점 | 화남 {{ video.anger }}점 | 슬픔 {{ video.sadness }}점 | 당황 {{ video.panic }}점</p>
+                    <p id="emotion-info">기쁨 {{ video.happy }}점 | 화남 {{ video.anger }}점 | 슬픔 {{ video.sadness }}점 | 당황 {{ video.panic }}점</p>
                 </div>
             </div>
 
@@ -404,7 +484,95 @@
                 chart.update(); // Re-render the chart
             });
         });
+
+        const comments = JSON.parse('{{ comments|escapejs }}');
+        console.log(comments);
+        // 댓글 목록 추가
+        const commentList = document.getElementById('comment-list');
+
+        let comments_for_prompt = '';
+
+        comments.forEach(comment => {
+            const li = document.createElement('li');
+
+            // 댓글 본문
+            const commentText = document.createElement('span');
+            commentText.innerHTML = `<strong>${comment.author}</strong>: ${comment.text}`;
+            comments_for_prompt += `, ${comment.text}`;
+            // 좋아요 표시
+            const likes = document.createElement('span');
+            likes.className = 'like-count';
+            likes.textContent = `👍 ${comment.likes}`;
+
+            li.appendChild(commentText);
+            li.appendChild(likes);
+            commentList.appendChild(li);
+        });
+
+        const apiKey = "AIzaSyBOSSGyQnVIG8uR746dfGKxbPTv3vmLdSA"; // Replace with your API key
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         
+        const emotionText = document.getElementById("emotion-info").textContent;
+
+        // 깔끔하게 이동진 평론가처럼 한줄로만 답변해줘
+        const prompt = `유튜브 댓글 인기순 5개인데, 키워드 단어 5개만 뽑아서 답변해줘 그리고 한줄 띄어서 깔끔하게 이동진 평론가처럼 한줄로만 답변해줘 , 댓글(들)이라는 말과 영화라는 말은 제외해줘 
+        다음은 댓글이야: ${comments_for_prompt}
+        감정 수치:
+        ${emotionText}
+        예시 : 
+        결혼, 성공, 습관, 손놀림, 귀여움
+        결혼의 기술, 습관의 승리, 놀라운 손재주, 순수함과 매력의 조화.
+        `;
+
+        // Construct the request body
+        const requestBody = {
+            contents: [
+                {
+                    parts: [{ text: prompt }]
+                }
+            ]
+        };
+
+        async function fetchSummary() {
+            try {
+                // Make the API request
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                // Handle the response
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP Error: ${response.status}\n${errorText}`);
+                }
+
+                const result = await response.json();
+
+                console.log(JSON.stringify(result, null, 2));
+                
+                // Extracting the summary text from the API response
+                const text = result.candidates[0].content.parts[0].text;
+
+                // Update the summary on the page
+                const commentSummary = document.getElementById('comment-summary');
+                // commentSummary.textContent = text;  // Update the summary text
+                // Replace \n with <br> for line breaks in HTML
+                const formattedText = text.replace(/\n/g, '<br>');
+
+                // Update the summary text with formatted HTML
+                commentSummary.innerHTML = formattedText;
+                
+            } catch (error) {
+                console.error("Error:", error);
+                const commentSummary = document.getElementById('comment-summary');
+                commentSummary.textContent = `Error: ${error.message}`;  // Show error message if something goes wrong
+            }
+        }
+        fetchSummary();
     </script>
 </body>
 </html>
