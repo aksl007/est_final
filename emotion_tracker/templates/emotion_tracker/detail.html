@@ -125,10 +125,34 @@
                 height: 200px; /* 모바일 환경에서 그래프 높이 조정 */
             }
         }
+
+        .thumbnail-container {
+            position: relative;         /* 내부 요소 기준 위치 */
+            display: flex;              /* 플렉스 박스 적용 */
+            justify-content: center;    /* 가로축 중앙 정렬 */
+            align-items: center;        /* 세로축 중앙 정렬 */
+            width: 100%;                /* 부모의 전체 너비 차지 */
+            height: 100%;               /* 부모의 전체 높이 차지 */
+        }
+
         .video-thumbnail {
-            width: 100%; /* 부모 요소의 너비에 맞게 이미지 크기 설정 */
-            height: 320px; /* 이미지의 비율을 유지하도록 설정 */
-            object-fit: contain; /* 이미지가 비율을 유지하며 부모 요소에 맞게 크기가 조정되도록 설정 */
+            width: 100%;               /* 이미지가 컨테이너 크기에 맞게 조정 */
+            height: auto;              /* 비율을 유지하며 높이 자동 조정 */
+            display: block;            /* 이미지 블록 처리 */
+            max-width: 100%;           /* 이미지가 컨테이너를 넘지 않도록 설정 */
+            padding: 10px 50px;
+        }
+
+        .duration {
+            position: absolute;        /* 부모 요소 기준으로 절대 위치 */
+            bottom: 5px;               /* 하단에서 5px 떨어짐 */
+            right: 5px;                /* 오른쪽에서 5px 떨어짐 */
+            background: rgba(0, 0, 0, 0.7); /* 반투명 배경 */
+            color: #fff;               /* 글씨 색을 흰색으로 */
+            padding: 2px 5px;          /* 내부 여백 */
+            font-size: 12px;           /* 글씨 크기 */
+            border-radius: 3px;        /* 모서리 둥글게 처리 */
+            margin: 10px 50px;
         }
 
         .frame-wrapper {
@@ -286,6 +310,7 @@
         .nav-arrow:hover {
             color: #bbb;
         }
+
     </style>
 </head>
 <body>
@@ -340,8 +365,12 @@
         <!-- Video Details -->
         <div class="video-details">
 
-            <a href="{{ video.video_url }}" target="_blank">
+            <a href="{{ video.video_url }}" target="_blank" class="thumbnail-container">
                 <img src="{{ video.thumbnail_url }}" alt="Video Thumbnail" class="video-thumbnail" >
+                <!-- 상영 시간 표시 -->
+                <span class="duration">
+                    {{ duration }} <!-- MM:SS 형식으로 시간 변환 -->
+                </span>
             </a> 
 
             <div class="card detail-card">

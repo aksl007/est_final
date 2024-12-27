@@ -30,13 +30,38 @@
             text-overflow: ellipsis;
         }
 
-        .video-description {
-            font-size: 0.9rem;
-            color: #666;
-            line-height: 1.4em;
-            height: 3em; /* 일정한 높이 유지 */
-            overflow: hidden;
-            text-overflow: ellipsis;
+        /* video-description-div 스타일 */
+        .video-description-div {
+            background-color: #f0f0f0; /* 회색 배경 */
+            padding: 10px 24px;             /* 패딩 추가 */
+            margin-top: 10px;          /* 카드 본문과 간격 추가 */
+            border-radius: 5px;       /* 모서리 둥글게 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 살짝 그림자 효과 */
+            position: relative;       /* 다른 요소에 영향을 주지 않도록 */
+            z-index: 2;               /* 다른 요소 위에 위치하게 */
+        }
+
+        /* video-description 링크 스타일 */
+        .video-description-div .video-description a {
+            text-decoration: none;    /* 링크 밑줄 제거 */
+            color: #333;              /* 어두운 회색 텍스트 */
+            font-weight: bold;        /* 텍스트 두껍게 */
+        }
+
+        .video-description-div .video-description a:hover {
+            color: #007BFF;           /* 호버 시 색상 변경 */
+        }
+
+        /* video-description-div의 여백 효과 */
+        .video-description-div::after {
+            content: ""; /* 추가적인 구분선 스타일을 위한 가상 요소 */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #ccc; /* 상단 경계선 */
+            border-radius: 5px 5px 0 0;
         }
 
         .card {
@@ -45,6 +70,13 @@
             justify-content: space-between;
             height: 100%;
             min-height: 300px; /* 최소 카드 높이 지정 */
+        }
+
+
+        .card .card-content {
+            padding: 24px;
+            border-radius: 0 0 2px 2px;
+            padding: 24px 24px 0px 24px;
         }
 
         .search-bar-container {
@@ -94,6 +126,19 @@
             bottom: 0;
             width: 100%;
         }
+
+        /* 화살표 아이콘 스타일 */
+        .arrow-icon {
+            font-size: 16px;          /* 화살표 크기 */
+            margin-left: 10px;        /* 화살표와 텍스트 사이 간격 */
+            color: #007BFF;           /* 화살표 색상 */
+        }
+
+        /* 화살표 아이콘 호버 시 색상 변경 */
+        .video-description-div .video-description a:hover .arrow-icon {
+            color: #0056b3;           /* 호버 시 화살표 색상 */
+        }
+        
     </style>
 </head>
 <body>
@@ -140,17 +185,24 @@
                         <a href="{{ video.url }}" target="_blank">
                             <img src="{{ video.thumbnail_url }}" alt="Video Thumbnail" class="video-thumbnail">
                         </a> 
+                        <!-- 시간 표시 -->
+                        <div class="time-label" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0, 0, 0, 0.7); color: white; padding: 3px 6px; border-radius: 4px; font-size: 12px;">
+                            {{ video.duration }}
+                        </div>
                     </div>
                     <div class="card-content">
                         <p class="video-title">
-                            <a href="{{ video.url }}" target="_blank">{{ video.title|truncatewords:6 }}</a>
+                            <a href="{{ video.url }}" target="_blank">{{ video.title|truncatewords:4 }}</a>
                         </p>
                         <p class="video-description">
                             <a href="{{ video.channel_url }}" target="_blank">{{ video.author }}</a>
                         </p>
+                    </div>
+                    <div class="video-description-div">
                         <p class="video-description">
                             <a href="{% url 'emotion_tracker:detail' video_id=video.video_id %}">
-                                기쁨 {{ video.happy }} 화남 {{ video.anger }} 슬픔 {{ video.sadness }} 당황 {{ video.panic }}
+                                기쁨 {{ video.happy }}점 | 화남 {{ video.anger }}점 | 슬픔 {{ video.sadness }}점 | 당황 {{ video.panic }}점
+                                <span class="arrow-icon">&#8594;</span>
                             </a>
                         </p>
                     </div>
@@ -253,7 +305,7 @@
                 const encodedText = encodeURIComponent(text);
 
                 // Adding the text as a query parameter to the current URL
-                const newUrl = `${window.location.pathname}?search=${encodedText}`;
+                const newUrl = `${window.location.pathname}?search=${encodedText}&keyword=${searchBar.value}`;
 
                 // Redirecting to the new URL
                 window.location.href = newUrl;

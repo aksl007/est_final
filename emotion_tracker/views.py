@@ -1,6 +1,5 @@
 from django.shortcuts import render
 import os
-import uuid
 from pytubefix import YouTube
 from django.http import JsonResponse, FileResponse, StreamingHttpResponse
 from django.conf import settings
@@ -10,8 +9,8 @@ import json
 from ultralytics import YOLO
 from django.db import transaction
 from .models import YouTubeVideo, FrameDetection
-from .utils import get_top_comments
-
+from .utils import get_top_comments, format_duration
+from django.db.models import Q
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,13 +18,22 @@ logger = logging.getLogger(__name__)
 def index(request):
     
     search = request.GET.get('search', None)  # 검색어 가져오기
+    keyword = request.GET.get('keyword', None)  # 검색어 가져오기
     if search:
         # YouTubeVideo 모델에서 데이터를 조회
         emotions = search.split(',')
-        videos = YouTubeVideo.objects.filter(happy__gte=emotions[0], anger__gte=emotions[1], sadness__gte=emotions[2], panic__gte=emotions[3])
+        videos = YouTubeVideo.objects.filter(
+            Q(
+                Q(happy__gte=emotions[0]) &
+                Q(anger__gte=emotions[1]) &
+                Q(sadness__gte=emotions[2]) &
+                Q(panic__gte=emotions[3])
+            )|
+            (Q(title__icontains=keyword))
+        ).order_by('-created_at')
     else:
         # YouTubeVideo 모델에서 데이터를 조회
-        videos = YouTubeVideo.objects.all()  # 모든 비디오 데이터를 가져옵니다.
+        videos = YouTubeVideo.objects.all().order_by('-created_at')
     
     
     # 데이터를 딕셔너리 형식으로 변환하여 템플릿에 전달
@@ -42,6 +50,7 @@ def index(request):
             "sadness": video.sadness,
             "panic": video.panic,
             "video_id": video.video_id,
+            "duration": format_duration(video.duration)
         }
         for video in videos
     ]
@@ -72,6 +81,7 @@ def detail(request, video_id):
         "video": video,
         "frames": json.dumps(data),  # Send JSON as a string
         "comments": json.dumps(comments),
+        "duration": format_duration(video.duration)
     })
 
 # Frames 저장 경로 설정
@@ -88,23 +98,10 @@ def download_video(request):
                 data = json.loads(request.body)
                 youtube_url = data.get('youtube_url')
                 
-                if not youtube_url:
-                    return JsonResponse({'error': 'YouTube URL is required!'}, status=400)
-                
-                def progress_function(stream, chunk, bytes_remaining):
-                    total_size = stream.filesize  # 파일의 전체 크기
-                    downloaded = total_size - bytes_remaining  # 이미 다운로드된 크기
-                    percent_complete = (downloaded / total_size) * 100  # 진행된 퍼센트 계산
-                    
-                    yield json.dumps({'progress': percent_complete}) + '\n'
-                
                 # YouTube 영상 다운로드
                 yt = YouTube(youtube_url)
                 stream = yt.streams.filter(progressive=True, file_extension='mp4').first()
                 temp_video_path = os.path.join(settings.MEDIA_ROOT, f"{yt.video_id}.mp4")
-
-                # set the progress callback function
-                stream.on_progress_callback = progress_function
                 stream.download(output_path=settings.MEDIA_ROOT, filename=temp_video_path)
 
                 # yt.video_id = 'NbOQWjqf6QU'
@@ -113,7 +110,7 @@ def download_video(request):
                 # yt.author = '일오팔'
                 # yt.channel_url = 'https://www.youtube.com/channel/UCJ4ETdbjB1MDhjwEZDtUlBQ'
                 # yt.description = '@bomulsum_g'
-
+                
                 # Create or get the video instance
                 video, created = YouTubeVideo.objects.get_or_create(
                     video_id=yt.video_id,
@@ -123,9 +120,14 @@ def download_video(request):
                         'description': yt.description,
                         'thumbnail_url': yt.thumbnail_url,
                         'channel_url': yt.channel_url,
-                        'video_url': youtube_url
+                        'video_url': youtube_url,
+                        'duration' : yt.length,
                     }
                 )
+                if created == False:
+                    error_response = {'error': f'이미 등록된 영상입니다.'}
+                    yield json.dumps(error_response)
+                    return StreamingHttpResponse(process_frames(), content_type='application/json')
                 
                 # video_id 에 대한
                 # video_id = 'NbOQWjqf6QU'

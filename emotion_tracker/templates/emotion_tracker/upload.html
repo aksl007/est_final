@@ -87,18 +87,6 @@
         </form>
 
         <div id="progress-div" class="center-align" style="display: none;">
-            <!-- <div class="preloader-wrapper active">
-                <div class="spinner-layer spinner-blue-only">
-                    <div class="circle-clipper left">
-                        <div class="circle"></div>
-                    </div><div class="gap-patch">
-                        <div class="circle"></div>
-                    </div><div class="circle-clipper right">
-                        <div class="circle"></div>
-                    </div>
-                </div>
-            </div>
-            <p>Processing video...</p> -->
             <progress id="progress" value="0" max="100" style="width: 100%;"></progress>
             <p id="progress-text">0%</p>
         </div>
@@ -144,12 +132,13 @@
                 let i = 0
                 while (true) {
                     const { value, done } = await reader.read();
+
                     if (done) break;
+
                     
                     const lines = decoder.decode(value).trim().split('\n');
                     console.log(lines)
 
-                    
                     for (const line of lines) {
                         i ++;
                         const data = JSON.parse(line);
@@ -157,7 +146,7 @@
                             progress.value = data.progress;
                             progressText.textContent = `Analyzing frame... ${data.progress}%`;
                         }
-                        
+
                         if (data.frame) {
 
                             // 이미지와 텍스트 요소 초기 생성 (최초 1회만 실행)
@@ -187,21 +176,27 @@
                                 document.getElementById('frame_index').textContent = `Frame ${i}`;
                             }
                             
+                        }else if (data.error) {
+                            alert(`${data.error}`);
                         }
 
                         if (data.results) {
                             results = data.results;
                             video_id = results;
+
+                            // Generate the base URL with a placeholder
+                            var newUrl = "{% url 'emotion_tracker:detail' video_id='PLACEHOLDER' %}";
+                            
+                            // Replace the placeholder with the actual video_id in JavaScript
+                            newUrl = newUrl.replace('PLACEHOLDER', video_id);
+
+                            setTimeout(function() {
+                                window.location.href = newUrl;    
+                            }, 2000); // 2초
+                            
                         }
                     }
                 }
-
-                // Generate the base URL with a placeholder
-                var newUrl = "{% url 'emotion_tracker:detail' video_id='PLACEHOLDER' %}";
-                
-                // Replace the placeholder with the actual video_id in JavaScript
-                newUrl = newUrl.replace('PLACEHOLDER', video_id);
-                window.location.href = newUrl;
 
                 console.log('Results:', results);
             } catch (err) {

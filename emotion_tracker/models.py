@@ -10,6 +10,7 @@ class YouTubeVideo(models.Model):
     description = models.TextField()
     thumbnail_url = models.URLField()
     channel_url = models.URLField()
+    duration = models.IntegerField(default=0)
 
     happy = models.IntegerField(default=0)
     anger = models.IntegerField(default=0)

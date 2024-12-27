@@ -20,3 +20,8 @@ def get_top_comments(video_id, max_comments=10):
         })
     
     return top_comments
+
+def format_duration(seconds):
+    minutes = seconds // 60
+    secs = seconds % 60
+    return f"{minutes}:{secs:02}"  # MM:SS 형식
