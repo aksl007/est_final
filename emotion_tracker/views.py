@@ -2,7 +2,7 @@ from django.shortcuts import render
 import os
 import uuid
 from pytubefix import YouTube
-from django.http import JsonResponse, FileResponse
+from django.http import JsonResponse, FileResponse, StreamingHttpResponse
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 import cv2
@@ -84,122 +84,138 @@ os.makedirs(FRAME_DIR, exist_ok=True)
 def download_video(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            youtube_url = data.get('youtube_url')
-            
-            if not youtube_url:
-                return JsonResponse({'error': 'YouTube URL is required!'}, status=400)
-            
-            # YouTube 영상 다운로드
-            yt = YouTube(youtube_url)
-            stream = yt.streams.filter(progressive=True, file_extension='mp4').first()
-            temp_video_path = os.path.join(settings.MEDIA_ROOT, f"{uuid.uuid4()}.mp4")
-            stream.download(output_path=settings.MEDIA_ROOT, filename=temp_video_path)
+            def process_frames():
+                data = json.loads(request.body)
+                youtube_url = data.get('youtube_url')
+                
+                if not youtube_url:
+                    return JsonResponse({'error': 'YouTube URL is required!'}, status=400)
+                
+                def progress_function(stream, chunk, bytes_remaining):
+                    total_size = stream.filesize  # 파일의 전체 크기
+                    downloaded = total_size - bytes_remaining  # 이미 다운로드된 크기
+                    percent_complete = (downloaded / total_size) * 100  # 진행된 퍼센트 계산
+                    
+                    yield json.dumps({'progress': percent_complete}) + '\n'
+                
+                # YouTube 영상 다운로드
+                yt = YouTube(youtube_url)
+                stream = yt.streams.filter(progressive=True, file_extension='mp4').first()
+                temp_video_path = os.path.join(settings.MEDIA_ROOT, f"{yt.video_id}.mp4")
 
-            # yt.video_id = 'NbOQWjqf6QU'
-            # yt.thumbnail_url = 'https://i.ytimg.com/vi/NbOQWjqf6QU/sddefault.jpg?sqp=-oaymwEoCIAFEOAD8quKqQMcGADwAQH4AbYIgAKAD4oCDAgAEAEYciBXKEAwDw==&rs=AOn4CLBo5jdTkLCc3ScSWvxl_MF8PeBSCQ'
-            # yt.title = '점점 커지는 음식 먹기 #도레미챌린지'
-            # yt.author = '일오팔'
-            # yt.channel_url = 'https://www.youtube.com/channel/UCJ4ETdbjB1MDhjwEZDtUlBQ'
-            # yt.description = '@bomulsum_g'
+                # set the progress callback function
+                stream.on_progress_callback = progress_function
+                stream.download(output_path=settings.MEDIA_ROOT, filename=temp_video_path)
 
-            # Create or get the video instance
-            video, created = YouTubeVideo.objects.get_or_create(
-                video_id=yt.video_id,
-                defaults={
-                    'title': yt.title,
-                    'author': yt.author,
-                    'description': yt.description,
-                    'thumbnail_url': yt.thumbnail_url,
-                    'channel_url': yt.channel_url,
-                    'video_url': youtube_url
-                }
-            )
+                # yt.video_id = 'NbOQWjqf6QU'
+                # yt.thumbnail_url = 'https://i.ytimg.com/vi/NbOQWjqf6QU/sddefault.jpg?sqp=-oaymwEoCIAFEOAD8quKqQMcGADwAQH4AbYIgAKAD4oCDAgAEAEYciBXKEAwDw==&rs=AOn4CLBo5jdTkLCc3ScSWvxl_MF8PeBSCQ'
+                # yt.title = '점점 커지는 음식 먹기 #도레미챌린지'
+                # yt.author = '일오팔'
+                # yt.channel_url = 'https://www.youtube.com/channel/UCJ4ETdbjB1MDhjwEZDtUlBQ'
+                # yt.description = '@bomulsum_g'
 
-            # video_id 에 대한
-            # video_id = 'NbOQWjqf6QU'
-            # frame 숫자 = 1
-            # confidence = 0.53
-            # class = 4
-            # frame_filename = 
-
-
-            # 모델 호출
-            model = YOLO(os.path.join(settings.BASE_DIR, 'best.pt'))
-            
-            # 프레임 추출
-            cap = cv2.VideoCapture(temp_video_path)
-            frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
-            frame_count = 0
-            frame_num = 0
-            detection_results = []
-
-            total = 0
-            emotions = [0] * 4
-
-            with transaction.atomic():  # Using atomic transaction for bulk create
-                detections_to_create = []
-                while cap.isOpened():
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-
-                    # 1초마다 프레임 저장
-                    if frame_count % frame_rate == 0:
-                        frame_num += 1
-                        frame_filename = f"{yt.video_id}_{frame_num}.jpg"
-                        frame_path = os.path.join(FRAME_DIR, frame_filename)
-                        
-                        results = model.predict(frame)
-                        # results = model.track(source=frame, persist=True)
-                        results[0].save(frame_path)
-
-                        # frame_paths.append(frame_filename)
-
-                        # 결과에서 감지 정보 추출
-                        detections = []
-                        for box in results[0].boxes:
-                            detections.append({
-                                'class': int(box.cls),
-                                'confidence': float(box.conf),
-                                'coordinates': box.xyxy.tolist()[0]  # [x1, y1, x2, y2]
-                            })
-
-                            # Add detections for the frame
-                            detection_obj = FrameDetection(
-                                video=video,
-                                frame_number=frame_num,
-                                confidence=float(box.conf),
-                                detection_class=int(box.cls),
-                                frame_filename=frame_filename
-                            )
-                            detections_to_create.append(detection_obj)
-
-                            # calculate emotion
-                            total += 1
-                            emotions[int(box.cls)] += float(box.conf)
+                # Create or get the video instance
+                video, created = YouTubeVideo.objects.get_or_create(
+                    video_id=yt.video_id,
+                    defaults={
+                        'title': yt.title,
+                        'author': yt.author,
+                        'description': yt.description,
+                        'thumbnail_url': yt.thumbnail_url,
+                        'channel_url': yt.channel_url,
+                        'video_url': youtube_url
+                    }
+                )
+                
+                # video_id 에 대한
+                # video_id = 'NbOQWjqf6QU'
+                # frame 숫자 = 1
+                # confidence = 0.53
+                # class = 4
+                # frame_filename = 
 
 
-                        
-                        if len(results[0].boxes) == 0:
-                            # Add detections for the frame
-                            detection_obj = FrameDetection(
-                                video=video,
-                                frame_number=frame_num,
-                                confidence=-1,
-                                detection_class=-1,
-                                frame_filename=frame_filename
-                            )
-                            detections_to_create.append(detection_obj)
+                # 모델 호출
+                model = YOLO(os.path.join(settings.BASE_DIR, 'best.pt'))
+                
+                # 프레임 추출
+                cap = cv2.VideoCapture(temp_video_path)
+                frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
+                progress = 0
+                frame_count = 0
+                frame_num = 0
+                total = 0
+                detection_results = []
+                emotions = [0] * 4
 
+                with transaction.atomic():  # Using atomic transaction for bulk create
+                    detections_to_create = []
 
-                        detection_results.append({
-                            'frame': frame_filename,
-                            'detections': detections
-                        })
+                    while cap.isOpened():
+                        ret, frame = cap.read()
+                        if not ret:
+                            break
+
+                        # 1초마다 프레임 저장
+                        if frame_count % frame_rate == 0:
+                            frame_num += 1
+                            frame_filename = f"{yt.video_id}_{frame_num}.jpg"
+                            frame_path = os.path.join(FRAME_DIR, frame_filename)
                             
+                            results = model.predict(frame)
+                            # results = model.track(source=frame, persist=True)
+                            results[0].save(frame_path)
 
-                    frame_count += 1
+                            # frame_paths.append(frame_filename)
+
+                            progress = int((frame_count/ frame_rate / yt.length) * 100)
+                            yield json.dumps({'progress': progress, 'frame': frame_filename}) + '\n'
+
+                            # 결과에서 감지 정보 추출
+                            detections = []
+                            for box in results[0].boxes:
+                                detections.append({
+                                    'class': int(box.cls),
+                                    'confidence': float(box.conf),
+                                    'coordinates': box.xyxy.tolist()[0]  # [x1, y1, x2, y2]
+                                })
+
+                                # Add detections for the frame
+                                detection_obj = FrameDetection(
+                                    video=video,
+                                    frame_number=frame_num,
+                                    confidence=float(box.conf),
+                                    detection_class=int(box.cls),
+                                    frame_filename=frame_filename
+                                )
+                                detections_to_create.append(detection_obj)
+
+                                # calculate emotion
+                                total += 1
+                                emotions[int(box.cls)] += float(box.conf)
+
+
+                            
+                            if len(results[0].boxes) == 0:
+                                # Add detections for the frame
+                                detection_obj = FrameDetection(
+                                    video=video,
+                                    frame_number=frame_num,
+                                    confidence=-1,
+                                    detection_class=-1,
+                                    frame_filename=frame_filename
+                                )
+                                detections_to_create.append(detection_obj)
+
+
+                            detection_results.append({
+                                'frame': frame_filename,
+                                'detections': detections
+                            })
+                                
+
+                        frame_count += 1
+                    yield json.dumps({'progress': 100, 'results': yt.video_id}) + '\n'
 
                 total_emotion = 0
                 for emotion in emotions:
@@ -213,11 +229,10 @@ def download_video(request):
                 # Bulk create detections
                 FrameDetection.objects.bulk_create(detections_to_create)    
 
-            cap.release()
-            os.remove(temp_video_path)
+                cap.release()
+                os.remove(temp_video_path)
 
-            # 프레임 파일명 리스트 반환
-            return JsonResponse({'results': detection_results}, status=200)
+            return StreamingHttpResponse(process_frames(), content_type='application/json')
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
