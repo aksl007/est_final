@@ -18,6 +18,9 @@ class YouTubeVideo(models.Model):
     panic = models.IntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    actions = ['delete_selected']  # 여러 항목을 한 번에 삭제하는 기능 활성화
+
     def __str__(self):
         return f'{self.title} / {self.author} / {self.description}'
     def delete(self, *args, **kwargs):

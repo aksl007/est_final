@@ -346,19 +346,19 @@
         <div id="checkbox-container">
             <label>
                 <input type="checkbox" class="emotion-checkbox" data-emotion="0" checked>
-                <span>Happy</span>
+                <span>기쁨</span>
             </label>
             <label>
                 <input type="checkbox" class="emotion-checkbox" data-emotion="1" checked>
-                <span>Anger</span>
+                <span>분노</span>
             </label>
             <label>
                 <input type="checkbox" class="emotion-checkbox" data-emotion="2" checked>
-                <span>Sadness</span>
+                <span>슬픔</span>
             </label>
             <label>
                 <input type="checkbox" class="emotion-checkbox" data-emotion="3" checked>
-                <span>Panic</span>
+                <span>당황</span>
             </label>
         </div>
 
@@ -432,7 +432,7 @@
             <div class="card detail-card">
                 <div class="card-content">
                     <strong>감정정보</strong>
-                    <p id="emotion-info">기쁨 {{ video.happy }}점 | 화남 {{ video.anger }}점 | 슬픔 {{ video.sadness }}점 | 당황 {{ video.panic }}점</p>
+                    <p id="emotion-info">기쁨 {{ video.happy }}점 | 분노 {{ video.anger }}점 | 슬픔 {{ video.sadness }}점 | 당황 {{ video.panic }}점</p>
                 </div>
             </div>
 
@@ -606,19 +606,16 @@
         /// Emotion Timeline Graph (예시 데이터)
         const ctx = document.getElementById('emotionTimelineGraph').getContext('2d');
 
-        // Emotion class labels
-        const emotionClasses = ['Happy', 'Anger', 'Sadness', 'Panic'];
-
-        console.log(frames);
+        // console.log(frames);
 
         // Initialize the data for each emotion class
         const emotionData = {
             labels: [],  // Frame numbers will be added here
             datasets: [
-                { label: 'Happy', data: [], borderColor: 'blue', backgroundColor: 'rgba(0, 0, 255, 0.1)', fill: true },
-                { label: 'Anger', data: [], borderColor: 'red', backgroundColor: 'rgba(255, 0, 0, 0.1)', fill: true },
-                { label: 'Sadness', data: [], borderColor: 'gray', backgroundColor: 'rgba(125, 125, 125, 0.1)', fill: true },
-                { label: 'Panic', data: [], borderColor: 'green', backgroundColor: 'rgba(0, 255, 0, 0.1)', fill: true }
+                { label: '기쁨', data: [], borderColor: 'blue', backgroundColor: 'rgba(0, 0, 255, 0.1)', fill: true },
+                { label: '분노', data: [], borderColor: 'red', backgroundColor: 'rgba(255, 0, 0, 0.1)', fill: true },
+                { label: '슬픔', data: [], borderColor: 'gray', backgroundColor: 'rgba(125, 125, 125, 0.1)', fill: true },
+                { label: '당황', data: [], borderColor: 'green', backgroundColor: 'rgba(0, 255, 0, 0.1)', fill: true }
             ]
         };
 
@@ -632,13 +629,13 @@
                 : 0; // Default to Joy if invalid or missing
 
             // Add the frame number to labels only once
-            if (!emotionData.labels.includes(`Frame ${frame.frame_number}`)) {
-                emotionData.labels.push(`Frame ${frame.frame_number}`);  // Add frame number to the labels only once
+            if (!emotionData.labels.includes(`${frame.frame_number}`)) {
+                emotionData.labels.push(`${frame.frame_number}`);  // Add frame number to the labels only once
             }
 
             // Ensure all emotion classes (0 to 3) are represented for each frame
             for (let i = 0; i < emotionData.datasets.length; i++) {
-                const frameIndex = emotionData.labels.indexOf(`Frame ${frame.frame_number}`);
+                const frameIndex = emotionData.labels.indexOf(`${frame.frame_number}`);
 
                 if (i === detectionClass) {
                     // If this class for this frame already has a confidence, update with the higher value
@@ -673,13 +670,13 @@
                     x: {
                         title: {
                             display: true,
-                            text: 'Time'
+                            text: '시간'
                         }
                     },
                     y: {
                         title: {
                             display: true,
-                            text: 'Confidence Score'
+                            text: '감정점수'
                         },
                         min: 0,  // Minimum value for y-axis
                         max: 10   // Maximum value for y-axis (as confidence is between 0 and 1)
@@ -700,7 +697,7 @@
 
         const comments = JSON.parse('{{ comments|escapejs }}');
         const videoTitle = '{{ video.title }}';
-        console.log(comments);
+        // console.log(comments);
         // 댓글 목록 추가
         const commentList = document.getElementById('comment-list');
 
@@ -729,7 +726,7 @@
         
         const emotionText = document.getElementById("emotion-info").textContent;
 
-        // 깔끔하게 이동진 평론가처럼 한줄로만 답변해줘
+        
         const prompt = `유튜브 제목, 댓글 인기순 5개, 감정수치인데,
         감정수치는 참고만 하고,
         제목과 댓글에서 키워드 단어 5개만 뽑아서 답변해줘 그리고 한줄 띄어서 깔끔하게 이동진 평론가처럼 한줄로만 답변해줘
@@ -771,7 +768,7 @@
 
                 const result = await response.json();
 
-                console.log(JSON.stringify(result, null, 2));
+                // console.log(JSON.stringify(result, null, 2));
                 
                 // Extracting the summary text from the API response
                 const text = result.candidates[0].content.parts[0].text;

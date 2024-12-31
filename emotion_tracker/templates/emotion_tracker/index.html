@@ -138,6 +138,45 @@
         .video-description-div .video-description a:hover .arrow-icon {
             color: #0056b3;           /* 호버 시 화살표 색상 */
         }
+
+        .no-results-container {
+            text-align: center;
+            padding: 50px 20px;
+            margin-top: 50px;
+        }
+
+        .no-results-image {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 20px;
+        }
+
+        .no-results-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .no-results-text {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .no-results-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #007BFF;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .no-results-button:hover {
+            background-color: #0056b3;
+        }
+
         
     </style>
 </head>
@@ -168,7 +207,7 @@
             <div class="col s12 search-row valign-wrapper">
                 <input type="text" id="search-bar" class="search-bar" placeholder="영상 제목 또는 감정으로 검색...">
                 <button class="btn blue waves-effect waves-light search-button" id="search-button">
-                    <i class="material-icons">search</i>
+                    <i class="material-icons">Search</i>
                 </button>
             </div>
         </div>
@@ -201,7 +240,7 @@
                     <div class="video-description-div">
                         <p class="video-description">
                             <a href="{% url 'emotion_tracker:detail' video_id=video.video_id %}">
-                                기쁨 {{ video.happy }}점 | 화남 {{ video.anger }}점 | 슬픔 {{ video.sadness }}점 | 당황 {{ video.panic }}점
+                                기쁨 {{ video.happy }}점 | 분노 {{ video.anger }}점 | 슬픔 {{ video.sadness }}점 | 당황 {{ video.panic }}점
                                 <span class="arrow-icon">&#8594;</span>
                             </a>
                         </p>
@@ -209,7 +248,11 @@
                 </div>
             </div>
             {% empty %}
-            <p>검색 결과가 없습니다.</p>
+            <div class="no-results-container">
+                <h2 class="no-results-title">검색 결과가 없습니다.</h2>
+                <p class="no-results-text">다른 키워드로 검색해 보세요.</p>
+                <a href="{% url 'emotion_tracker:index' %}" class="no-results-button">홈으로 돌아가기</a>
+            </div>
             {% endfor %}
         </div>
     </div>
@@ -267,7 +310,10 @@
                 return;
             }
             
-            prompt = "검색어를 분석해서 우리 영상으로 사용자의 감정을 개선하려고 해, 영상의 감성 수치를 다음과 같은 숫자(0~3), 숫자(0~3), 숫자(0~3), 숫자(0~3) 형식으로 각각 행복,슬픔,놀람,화남으로 나타내줘 그리고 절대적으로 숫자 결과만 나타내줘, 검색어는 다음과 같아, " + prompt;
+            prompt = `검색어를 분석해서 우리 영상으로 사용자의 감정을 개선하려고 해,
+            영상의 감성 수치를 다음과 같은 숫자(0~3), 숫자(0~3), 숫자(0~3), 숫자(0~3) 형식으로
+            각각 행복,슬픔,놀람,화남으로 나타내줘 그리고 절대적으로 숫자 결과만 나타내줘, 
+            검색어는 다음과 같아, ` + prompt;
 
             // Construct the request body
             const requestBody = {
@@ -297,7 +343,7 @@
                 const result = await response.json();
 
                 
-                console.log(JSON.stringify(result, null, 2));
+                // console.log(JSON.stringify(result, null, 2));
                 // Extracting the text
                 const text = result.candidates[0].content.parts[0].text;
 
